@@ -29,8 +29,8 @@ class UnifiedSchemaValidator:
     
     @staticmethod
     def validate_record_type(df: pd.DataFrame) -> bool:
-        """Ensure record_type is one of: observation, event, impact_link"""
-        valid_types = ['observation', 'event', 'impact_link']
+        """Ensure record_type is one of: observation, event, impact_link, target, baseline, forecast"""
+        valid_types = ['observation', 'event', 'impact_link', 'target', 'baseline', 'forecast']
         if 'record_type' not in df.columns:
             return False
         invalid = df[~df['record_type'].isin(valid_types)]
