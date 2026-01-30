@@ -29,8 +29,8 @@ class UnifiedSchemaValidator:
     
     @staticmethod
     def validate_record_type(df: pd.DataFrame) -> bool:
-        """Ensure record_type is one of: observation, event, impact_link"""
-        valid_types = ['observation', 'event', 'impact_link']
+        """Ensure record_type is one of: observation, event, impact_link, target, baseline, forecast"""
+        valid_types = ['observation', 'event', 'impact_link', 'target', 'baseline', 'forecast']
         if 'record_type' not in df.columns:
             return False
         invalid = df[~df['record_type'].isin(valid_types)]
@@ -42,6 +42,12 @@ class UnifiedSchemaValidator:
     @staticmethod
     def validate_events_no_pillar(df: pd.DataFrame) -> bool:
         """Ensure events have NO pillar assignment (pillar-agnostic)"""
+        if df.empty or 'record_type' not in df.columns:
+            if df.empty:
+                logger.info("DataFrame is empty - skipping events validation")
+            else:
+                logger.warning("record_type column not found - skipping events validation")
+            return True  # Return True if empty or column doesn't exist (can't validate)
         events = df[df['record_type'] == 'event']
         if len(events) > 0 and 'pillar' in events.columns:
             has_pillar = events['pillar'].notna().any()
@@ -53,6 +59,12 @@ class UnifiedSchemaValidator:
     @staticmethod
     def validate_impact_links(df: pd.DataFrame) -> bool:
         """Validate impact_link records reference valid events and observations"""
+        if df.empty or 'record_type' not in df.columns:
+            if df.empty:
+                logger.info("DataFrame is empty - skipping impact links validation")
+            else:
+                logger.warning("record_type column not found - skipping impact links validation")
+            return True  # Return True if empty or column doesn't exist (can't validate)
         impact_links = df[df['record_type'] == 'impact_link']
         if len(impact_links) == 0:
             return True
@@ -75,12 +87,12 @@ class UnifiedSchemaValidator:
 
 def load_unified_data(file_path: str) -> pd.DataFrame:
     """
-    Load the unified schema dataset
+    Load the unified schema dataset (supports CSV and Excel formats)
     
     Parameters:
     -----------
     file_path : str
-        Path to the CSV file
+        Path to the CSV or Excel file
         
     Returns:
     --------
@@ -88,13 +100,28 @@ def load_unified_data(file_path: str) -> pd.DataFrame:
         Loaded dataset with validated schema
     """
     logger.info(f"Loading unified data from {file_path}")
-    df = pd.read_csv(file_path)
+    
+    # Support both CSV and Excel formats
+    if file_path.endswith('.xlsx') or file_path.endswith('.xls'):
+        df = pd.read_excel(file_path)
+    else:
+        df = pd.read_csv(file_path)
     
     validator = UnifiedSchemaValidator()
     
-    # Basic validations
-    if not validator.validate_record_type(df):
-        raise ValueError("Invalid record_type values in dataset")
+    # Basic validations - use the validator's valid types list
+    # All valid types: observation, event, impact_link, target, baseline, forecast
+    valid_types = ['observation', 'event', 'impact_link', 'target', 'baseline', 'forecast']
+    
+    if 'record_type' in df.columns:
+        # Check for truly invalid record types
+        invalid = df[~df['record_type'].isin(valid_types)]
+        if len(invalid) > 0:
+            invalid_types = invalid['record_type'].unique().tolist()
+            logger.warning(f"Found invalid record_type values: {invalid_types}")
+            raise ValueError(f"Invalid record_type values in dataset: {invalid_types}")
+    
+    # Validate events are pillar-agnostic
     
     if not validator.validate_events_no_pillar(df):
         raise ValueError("Events must not have pillar assignments")
@@ -107,12 +134,12 @@ def load_unified_data(file_path: str) -> pd.DataFrame:
 
 def load_reference_codes(file_path: str) -> pd.DataFrame:
     """
-    Load reference codes for data interpretation
+    Load reference codes for data interpretation (supports CSV and Excel formats)
     
     Parameters:
     -----------
     file_path : str
-        Path to reference_codes.csv
+        Path to reference_codes.csv or .xlsx
         
     Returns:
     --------
@@ -120,7 +147,12 @@ def load_reference_codes(file_path: str) -> pd.DataFrame:
         Reference codes dataframe
     """
     logger.info(f"Loading reference codes from {file_path}")
-    return pd.read_csv(file_path)
+    
+    # Support both CSV and Excel formats
+    if file_path.endswith('.xlsx') or file_path.endswith('.xls'):
+        return pd.read_excel(file_path)
+    else:
+        return pd.read_csv(file_path)
 
 
 def quantify_dataset_composition(df: pd.DataFrame) -> Dict:
@@ -139,13 +171,13 @@ def quantify_dataset_composition(df: pd.DataFrame) -> Dict:
     """
     composition = {
         'total_records': len(df),
-        'by_record_type': df['record_type'].value_counts().to_dict(),
-        'by_pillar': df[df['record_type'] == 'observation']['pillar'].value_counts().to_dict() if 'pillar' in df.columns else {},
-        'by_source_type': df['source_type'].value_counts().to_dict() if 'source_type' in df.columns else {},
-        'by_confidence': df['confidence'].value_counts().to_dict() if 'confidence' in df.columns else {},
+        'by_record_type': df['record_type'].value_counts().to_dict() if 'record_type' in df.columns and len(df) > 0 else {},
+        'by_pillar': df[df['record_type'] == 'observation']['pillar'].value_counts().to_dict() if 'record_type' in df.columns and 'pillar' in df.columns and len(df[df['record_type'] == 'observation']) > 0 else {},
+        'by_source_type': df['source_type'].value_counts().to_dict() if 'source_type' in df.columns and len(df) > 0 else {},
+        'by_confidence': df['confidence'].value_counts().to_dict() if 'confidence' in df.columns and len(df) > 0 else {},
         'year_range': {
-            'min': int(df['year'].min()) if 'year' in df.columns else None,
-            'max': int(df['year'].max()) if 'year' in df.columns else None
+            'min': int(df['year'].min()) if 'year' in df.columns and len(df) > 0 and df['year'].notna().any() else None,
+            'max': int(df['year'].max()) if 'year' in df.columns and len(df) > 0 and df['year'].notna().any() else None
         }
     }
     
@@ -405,3 +437,124 @@ def get_impact_links_for_event(df: pd.DataFrame, event_idx: int) -> pd.DataFrame
     """
     impact_links = df[df['record_type'] == 'impact_link'].copy()
     return impact_links[impact_links['source_event'] == event_idx]
+
+
+def load_data_points_guide(file_path: Optional[str] = None) -> Dict[str, pd.DataFrame]:
+    """
+    Load the Additional Data Points Guide Excel file (all 4 sheets)
+    
+    Parameters:
+    -----------
+    file_path : str, optional
+        Path to Additional Data Points Guide.xlsx
+        If None, looks in data/raw/ directory
+        
+    Returns:
+    --------
+    Dict[str, pd.DataFrame]
+        Dictionary with sheet names as keys and DataFrames as values
+        Keys: 'A. Alternative Baselines', 'B. Direct Corrln', 'C. Indirect Corrln', 'D. Market Naunces'
+    """
+    if file_path is None:
+        # Default path
+        default_path = Path(__file__).parent.parent / "data" / "raw" / "Additional Data Points Guide.xlsx"
+        file_path = str(default_path)
+    
+    logger.info(f"Loading Additional Data Points Guide from {file_path}")
+    
+    try:
+        # Load all sheets
+        sheets = {
+            'A. Alternative Baselines': pd.read_excel(file_path, sheet_name='A. Alternative Baselines'),
+            'B. Direct Corrln': pd.read_excel(file_path, sheet_name='B. Direct Corrln'),
+            'C. Indirect Corrln': pd.read_excel(file_path, sheet_name='C. Indirect Corrln'),
+            'D. Market Naunces': pd.read_excel(file_path, sheet_name='D. Market Naunces')
+        }
+        
+        logger.info(f"Loaded {len(sheets)} sheets from guide")
+        for sheet_name, df in sheets.items():
+            logger.info(f"  - {sheet_name}: {len(df)} rows")
+        
+        return sheets
+    except Exception as e:
+        logger.warning(f"Could not load Additional Data Points Guide: {e}")
+        return {}
+
+
+def get_source_info(guide_sheets: Dict[str, pd.DataFrame], source_name: str) -> Optional[Dict]:
+    """
+    Get information about a specific data source from the guide
+    
+    Parameters:
+    -----------
+    guide_sheets : Dict[str, pd.DataFrame]
+        Dictionary of guide sheets (from load_data_points_guide)
+    source_name : str
+        Name of source to search for (e.g., 'IMF', 'GSMA', 'ITU', 'NBE')
+        
+    Returns:
+    --------
+    Dict or None
+        Source information including type, geographic scope, Ethiopia inclusion, highlights, link
+    """
+    if not guide_sheets:
+        return None
+    
+    # Search in Alternative Baselines sheet (most likely location)
+    if 'A. Alternative Baselines' in guide_sheets:
+        df = guide_sheets['A. Alternative Baselines']
+        
+        # Try to find source by name (case-insensitive, partial match)
+        # Check common column names
+        name_col = None
+        for col in df.columns:
+            if 'survey' in col.lower() or 'source' in col.lower() or 'name' in col.lower() or df.columns[0] == col:
+                name_col = col
+                break
+        
+        if name_col:
+            # Search for source
+            mask = df[name_col].astype(str).str.contains(source_name, case=False, na=False)
+            matches = df[mask]
+            
+            if len(matches) > 0:
+                row = matches.iloc[0]
+                info = {
+                    'source_name': str(row[name_col]) if name_col in row else source_name,
+                    'type': str(row.get('Type', '')) if 'Type' in row else '',
+                    'geographic_scope': str(row.get('Geographic Scope', '')) if 'Geographic Scope' in row else '',
+                    'ethiopia_included': str(row.get('Ethiopia Included?', '')) if 'Ethiopia Included?' in row else '',
+                    'highlights': str(row.get('Highlights', '')) if 'Highlights' in row else '',
+                    'link': str(row.get('Link to Data', '')) if 'Link to Data' in row else ''
+                }
+                return info
+    
+    return None
+
+
+def list_available_sources(guide_sheets: Dict[str, pd.DataFrame], ethiopia_only: bool = True) -> pd.DataFrame:
+    """
+    List all available data sources from the guide
+    
+    Parameters:
+    -----------
+    guide_sheets : Dict[str, pd.DataFrame]
+        Dictionary of guide sheets (from load_data_points_guide)
+    ethiopia_only : bool
+        If True, only return sources that include Ethiopia
+        
+    Returns:
+    --------
+    pd.DataFrame
+        DataFrame with available sources and their characteristics
+    """
+    if not guide_sheets or 'A. Alternative Baselines' not in guide_sheets:
+        return pd.DataFrame()
+    
+    df = guide_sheets['A. Alternative Baselines'].copy()
+    
+    # Filter for Ethiopia if requested
+    if ethiopia_only and 'Ethiopia Included?' in df.columns:
+        df = df[df['Ethiopia Included?'].astype(str).str.contains('Yes', case=False, na=False)]
+    
+    return df
