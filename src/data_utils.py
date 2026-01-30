@@ -171,13 +171,13 @@ def quantify_dataset_composition(df: pd.DataFrame) -> Dict:
     """
     composition = {
         'total_records': len(df),
-        'by_record_type': df['record_type'].value_counts().to_dict(),
-        'by_pillar': df[df['record_type'] == 'observation']['pillar'].value_counts().to_dict() if 'pillar' in df.columns else {},
-        'by_source_type': df['source_type'].value_counts().to_dict() if 'source_type' in df.columns else {},
-        'by_confidence': df['confidence'].value_counts().to_dict() if 'confidence' in df.columns else {},
+        'by_record_type': df['record_type'].value_counts().to_dict() if 'record_type' in df.columns and len(df) > 0 else {},
+        'by_pillar': df[df['record_type'] == 'observation']['pillar'].value_counts().to_dict() if 'record_type' in df.columns and 'pillar' in df.columns and len(df[df['record_type'] == 'observation']) > 0 else {},
+        'by_source_type': df['source_type'].value_counts().to_dict() if 'source_type' in df.columns and len(df) > 0 else {},
+        'by_confidence': df['confidence'].value_counts().to_dict() if 'confidence' in df.columns and len(df) > 0 else {},
         'year_range': {
-            'min': int(df['year'].min()) if 'year' in df.columns else None,
-            'max': int(df['year'].max()) if 'year' in df.columns else None
+            'min': int(df['year'].min()) if 'year' in df.columns and len(df) > 0 and df['year'].notna().any() else None,
+            'max': int(df['year'].max()) if 'year' in df.columns and len(df) > 0 and df['year'].notna().any() else None
         }
     }
     
