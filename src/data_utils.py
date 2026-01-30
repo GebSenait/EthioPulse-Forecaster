@@ -425,3 +425,124 @@ def get_impact_links_for_event(df: pd.DataFrame, event_idx: int) -> pd.DataFrame
     """
     impact_links = df[df['record_type'] == 'impact_link'].copy()
     return impact_links[impact_links['source_event'] == event_idx]
+
+
+def load_data_points_guide(file_path: Optional[str] = None) -> Dict[str, pd.DataFrame]:
+    """
+    Load the Additional Data Points Guide Excel file (all 4 sheets)
+    
+    Parameters:
+    -----------
+    file_path : str, optional
+        Path to Additional Data Points Guide.xlsx
+        If None, looks in data/raw/ directory
+        
+    Returns:
+    --------
+    Dict[str, pd.DataFrame]
+        Dictionary with sheet names as keys and DataFrames as values
+        Keys: 'A. Alternative Baselines', 'B. Direct Corrln', 'C. Indirect Corrln', 'D. Market Naunces'
+    """
+    if file_path is None:
+        # Default path
+        default_path = Path(__file__).parent.parent / "data" / "raw" / "Additional Data Points Guide.xlsx"
+        file_path = str(default_path)
+    
+    logger.info(f"Loading Additional Data Points Guide from {file_path}")
+    
+    try:
+        # Load all sheets
+        sheets = {
+            'A. Alternative Baselines': pd.read_excel(file_path, sheet_name='A. Alternative Baselines'),
+            'B. Direct Corrln': pd.read_excel(file_path, sheet_name='B. Direct Corrln'),
+            'C. Indirect Corrln': pd.read_excel(file_path, sheet_name='C. Indirect Corrln'),
+            'D. Market Naunces': pd.read_excel(file_path, sheet_name='D. Market Naunces')
+        }
+        
+        logger.info(f"Loaded {len(sheets)} sheets from guide")
+        for sheet_name, df in sheets.items():
+            logger.info(f"  - {sheet_name}: {len(df)} rows")
+        
+        return sheets
+    except Exception as e:
+        logger.warning(f"Could not load Additional Data Points Guide: {e}")
+        return {}
+
+
+def get_source_info(guide_sheets: Dict[str, pd.DataFrame], source_name: str) -> Optional[Dict]:
+    """
+    Get information about a specific data source from the guide
+    
+    Parameters:
+    -----------
+    guide_sheets : Dict[str, pd.DataFrame]
+        Dictionary of guide sheets (from load_data_points_guide)
+    source_name : str
+        Name of source to search for (e.g., 'IMF', 'GSMA', 'ITU', 'NBE')
+        
+    Returns:
+    --------
+    Dict or None
+        Source information including type, geographic scope, Ethiopia inclusion, highlights, link
+    """
+    if not guide_sheets:
+        return None
+    
+    # Search in Alternative Baselines sheet (most likely location)
+    if 'A. Alternative Baselines' in guide_sheets:
+        df = guide_sheets['A. Alternative Baselines']
+        
+        # Try to find source by name (case-insensitive, partial match)
+        # Check common column names
+        name_col = None
+        for col in df.columns:
+            if 'survey' in col.lower() or 'source' in col.lower() or 'name' in col.lower() or df.columns[0] == col:
+                name_col = col
+                break
+        
+        if name_col:
+            # Search for source
+            mask = df[name_col].astype(str).str.contains(source_name, case=False, na=False)
+            matches = df[mask]
+            
+            if len(matches) > 0:
+                row = matches.iloc[0]
+                info = {
+                    'source_name': str(row[name_col]) if name_col in row else source_name,
+                    'type': str(row.get('Type', '')) if 'Type' in row else '',
+                    'geographic_scope': str(row.get('Geographic Scope', '')) if 'Geographic Scope' in row else '',
+                    'ethiopia_included': str(row.get('Ethiopia Included?', '')) if 'Ethiopia Included?' in row else '',
+                    'highlights': str(row.get('Highlights', '')) if 'Highlights' in row else '',
+                    'link': str(row.get('Link to Data', '')) if 'Link to Data' in row else ''
+                }
+                return info
+    
+    return None
+
+
+def list_available_sources(guide_sheets: Dict[str, pd.DataFrame], ethiopia_only: bool = True) -> pd.DataFrame:
+    """
+    List all available data sources from the guide
+    
+    Parameters:
+    -----------
+    guide_sheets : Dict[str, pd.DataFrame]
+        Dictionary of guide sheets (from load_data_points_guide)
+    ethiopia_only : bool
+        If True, only return sources that include Ethiopia
+        
+    Returns:
+    --------
+    pd.DataFrame
+        DataFrame with available sources and their characteristics
+    """
+    if not guide_sheets or 'A. Alternative Baselines' not in guide_sheets:
+        return pd.DataFrame()
+    
+    df = guide_sheets['A. Alternative Baselines'].copy()
+    
+    # Filter for Ethiopia if requested
+    if ethiopia_only and 'Ethiopia Included?' in df.columns:
+        df = df[df['Ethiopia Included?'].astype(str).str.contains('Yes', case=False, na=False)]
+    
+    return df
