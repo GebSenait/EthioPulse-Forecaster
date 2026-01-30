@@ -40,8 +40,12 @@ ENV/
 
 # Data files (keep structure, ignore large files)
 data/raw/*.csv
+data/raw/*.xlsx
+data/raw/*.xls
 !data/raw/.gitkeep
 data/processed/*.csv
+data/processed/*.xlsx
+data/processed/*.xls
 !data/processed/.gitkeep
 
 # Models
