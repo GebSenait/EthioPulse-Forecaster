@@ -75,12 +75,12 @@ class UnifiedSchemaValidator:
 
 def load_unified_data(file_path: str) -> pd.DataFrame:
     """
-    Load the unified schema dataset
+    Load the unified schema dataset (supports CSV and Excel formats)
     
     Parameters:
     -----------
     file_path : str
-        Path to the CSV file
+        Path to the CSV or Excel file
         
     Returns:
     --------
@@ -88,7 +88,12 @@ def load_unified_data(file_path: str) -> pd.DataFrame:
         Loaded dataset with validated schema
     """
     logger.info(f"Loading unified data from {file_path}")
-    df = pd.read_csv(file_path)
+    
+    # Support both CSV and Excel formats
+    if file_path.endswith('.xlsx') or file_path.endswith('.xls'):
+        df = pd.read_excel(file_path)
+    else:
+        df = pd.read_csv(file_path)
     
     validator = UnifiedSchemaValidator()
     
@@ -107,12 +112,12 @@ def load_unified_data(file_path: str) -> pd.DataFrame:
 
 def load_reference_codes(file_path: str) -> pd.DataFrame:
     """
-    Load reference codes for data interpretation
+    Load reference codes for data interpretation (supports CSV and Excel formats)
     
     Parameters:
     -----------
     file_path : str
-        Path to reference_codes.csv
+        Path to reference_codes.csv or .xlsx
         
     Returns:
     --------
@@ -120,7 +125,12 @@ def load_reference_codes(file_path: str) -> pd.DataFrame:
         Reference codes dataframe
     """
     logger.info(f"Loading reference codes from {file_path}")
-    return pd.read_csv(file_path)
+    
+    # Support both CSV and Excel formats
+    if file_path.endswith('.xlsx') or file_path.endswith('.xls'):
+        return pd.read_excel(file_path)
+    else:
+        return pd.read_csv(file_path)
 
 
 def quantify_dataset_composition(df: pd.DataFrame) -> Dict:
