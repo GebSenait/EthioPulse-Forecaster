@@ -58,7 +58,7 @@ EthioPulse-Forecaster/
 
 ## Key Features
 
-- **Unified Schema Dataset**: Works with `ethiopia_fi_unified_data.csv` containing observations, events, impact links, and targets
+- **Unified Schema Dataset**: Works with `ethiopia_fi_unified_data.xlsx` containing observations, events, impact links, and targets
 - **Event-Driven Analysis**: Pillar-agnostic events with causal logic through impact_link records
 - **Data Enrichment Pipeline**: Automated enrichment from IMF FAS, GSMA, ITU, NBE, and operator reports
 - **Policy-Aware EDA**: Exploratory analysis with Ethiopia-specific market context
@@ -131,7 +131,7 @@ Task 1 implements a comprehensive data exploration and enrichment pipeline for E
 The implementation follows a structured pipeline:
 
 1. **Data Loading & Validation**
-   - Load unified schema dataset (`ethiopia_fi_unified_data.csv`)
+   - Load unified schema dataset (`ethiopia_fi_unified_data.xlsx`)
    - Load reference codes for interpretation
    - Validate schema compliance using `UnifiedSchemaValidator`
 
@@ -151,7 +151,7 @@ The implementation follows a structured pipeline:
    - Express causal relationships while maintaining pillar-agnostic events
 
 5. **Output Generation**
-   - Save enriched dataset to `data/processed/ethiopia_fi_enriched.csv`
+   - Save enriched dataset to `data/processed/ethiopia_fi_unified_data.xlsx`
    - Generate comprehensive enrichment log (`reports/data_enrichment_log.md`)
 
 ### Files Created
@@ -159,7 +159,7 @@ The implementation follows a structured pipeline:
 | File | Location | Description |
 |------|----------|-------------|
 | `task1_data_exploration.ipynb` | `notebooks/` | Main enrichment pipeline notebook |
-| `ethiopia_fi_enriched.csv` | `data/processed/` | Enriched dataset output |
+| `ethiopia_fi_unified_data.xlsx` | `data/processed/` | Enriched dataset output |
 | `data_enrichment_log.md` | `reports/` | Detailed enrichment documentation |
 
 **Supporting Files:**
@@ -194,7 +194,7 @@ The implementation follows a structured pipeline:
 ✓ Added Y IMF FAS observations
 ✓ Added Z GSMA records
 ✓ Created N impact links
-✓ Enriched dataset saved to: data/processed/ethiopia_fi_enriched.csv
+✓ Enriched dataset saved to: data/processed/ethiopia_fi_unified_data.xlsx
 ✓ Enrichment log saved to: reports/data_enrichment_log.md
 ```
 
@@ -304,7 +304,7 @@ The EDA follows a systematic analytical approach:
    - P-value for statistical significance
    - Growth rate statistics
 
-4. **Policy Insights** (Minimum 5)
+4. **Policy Insights**
    - Access-Usage Gap analysis
    - Post-2021 Growth Deceleration explanation
    - Policy Event Impact Timing
@@ -337,8 +337,6 @@ Growth slowdown: Z.ZZ percentage points
 3. Policy Events Show Delayed Impact
 4. Infrastructure Growth Outpaces Usage
 5. Market Competition Drives Access but Not Usage
-
-✓ EDA completed. Ready for forecasting model development.
 ```
 
 ### Key Insights
@@ -382,10 +380,6 @@ This project follows strict Git/GitHub best practices:
 - Merges to `main` via Pull Request only
 - Small, descriptive commits
 - Comprehensive documentation
-
-## License
-
-[Specify license]
 
 ## Contact
 
