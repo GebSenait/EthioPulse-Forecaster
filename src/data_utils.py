@@ -97,9 +97,19 @@ def load_unified_data(file_path: str) -> pd.DataFrame:
     
     validator = UnifiedSchemaValidator()
     
-    # Basic validations
-    if not validator.validate_record_type(df):
-        raise ValueError("Invalid record_type values in dataset")
+    # Basic validations - use the validator's valid types list
+    # All valid types: observation, event, impact_link, target, baseline, forecast
+    valid_types = ['observation', 'event', 'impact_link', 'target', 'baseline', 'forecast']
+    
+    if 'record_type' in df.columns:
+        # Check for truly invalid record types
+        invalid = df[~df['record_type'].isin(valid_types)]
+        if len(invalid) > 0:
+            invalid_types = invalid['record_type'].unique().tolist()
+            logger.warning(f"Found invalid record_type values: {invalid_types}")
+            raise ValueError(f"Invalid record_type values in dataset: {invalid_types}")
+    
+    # Validate events are pillar-agnostic
     
     if not validator.validate_events_no_pillar(df):
         raise ValueError("Events must not have pillar assignments")
