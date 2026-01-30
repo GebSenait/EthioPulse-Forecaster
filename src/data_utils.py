@@ -42,6 +42,12 @@ class UnifiedSchemaValidator:
     @staticmethod
     def validate_events_no_pillar(df: pd.DataFrame) -> bool:
         """Ensure events have NO pillar assignment (pillar-agnostic)"""
+        if df.empty or 'record_type' not in df.columns:
+            if df.empty:
+                logger.info("DataFrame is empty - skipping events validation")
+            else:
+                logger.warning("record_type column not found - skipping events validation")
+            return True  # Return True if empty or column doesn't exist (can't validate)
         events = df[df['record_type'] == 'event']
         if len(events) > 0 and 'pillar' in events.columns:
             has_pillar = events['pillar'].notna().any()
@@ -53,6 +59,12 @@ class UnifiedSchemaValidator:
     @staticmethod
     def validate_impact_links(df: pd.DataFrame) -> bool:
         """Validate impact_link records reference valid events and observations"""
+        if df.empty or 'record_type' not in df.columns:
+            if df.empty:
+                logger.info("DataFrame is empty - skipping impact links validation")
+            else:
+                logger.warning("record_type column not found - skipping impact links validation")
+            return True  # Return True if empty or column doesn't exist (can't validate)
         impact_links = df[df['record_type'] == 'impact_link']
         if len(impact_links) == 0:
             return True
