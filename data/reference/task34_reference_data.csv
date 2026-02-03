@@ -1,0 +1,34 @@
+record_id,record_type,year,value,pillar,indicator,source_type,confidence,event_name,event_type,source_event,target_observation,impact_direction,impact_magnitude,lag_months
+1,observation,2011,14.0,access,account_ownership,FINDEX,high,,,,,,
+2,observation,2014,22.0,access,account_ownership,FINDEX,high,,,,,,
+3,observation,2017,35.0,access,account_ownership,FINDEX,high,,,,,,
+4,observation,2021,46.2,access,account_ownership,IMF_FAS,high,,,,,,
+5,observation,2022,48.7,access,account_ownership,NBE,high,,,,,,
+6,observation,2023,52.0,access,account_ownership,GSMA,high,,,,,,
+7,observation,2024,54.0,access,account_ownership,ANALYST,medium,,,,,,
+8,observation,2011,2.0,usage,digital_payments,FINDEX,high,,,,,,
+9,observation,2014,4.0,usage,digital_payments,FINDEX,high,,,,,,
+10,observation,2017,9.0,usage,digital_payments,FINDEX,high,,,,,,
+11,observation,2021,28.5,usage,digital_payments,IMF_FAS,high,,,,,,
+12,observation,2022,30.0,usage,digital_payments,NBE,high,,,,,,
+13,observation,2023,31.2,usage,digital_payments,OPERATOR,medium,,,,,,
+14,observation,2024,33.0,usage,digital_payments,ANALYST,medium,,,,,,
+15,observation,2022,52.3,access,mm_accounts,GSMA,high,,,,,,
+16,observation,2023,58.0,access,mm_accounts,GSMA,high,,,,,,
+17,observation,2024,62.0,access,mm_accounts,ANALYST,medium,,,,,,
+18,event,2014,,,market_launch,,M-Birr Launch,market,,,,,,
+19,event,2017,,,policy,,NBE Mobile Money Directive,policy,,,,,,
+20,event,2020,,,policy,,National Financial Inclusion Strategy,policy,,,,,,
+21,event,2021,,,market,,Telebirr Launch,market,,,,,,
+22,event,2021,,,policy,,Mobile Money Interoperability,policy,,,,,,
+23,event,2022,,,market,,M-Birr Rural Expansion,market,,,,,,
+24,event,2023,,,market,,M-Pesa Ethiopia Launch,market,,,,,,
+25,impact_link,,,,,,,20,4,,positive,2.5,18
+26,impact_link,,,,,,,21,4,,positive,4.2,0
+27,impact_link,,,,,,,21,11,,positive,5.0,6
+28,impact_link,,,,,,,22,5,,positive,2.0,0
+29,impact_link,,,,,,,22,12,,positive,1.5,12
+30,impact_link,,,,,,,20,5,,positive,2.5,18
+31,impact_link,,,,,,,23,6,,positive,1.8,12
+32,impact_link,,,,,,,24,6,,positive,2.0,12
+33,impact_link,,,,,,,24,13,,positive,1.2,6

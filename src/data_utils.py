@@ -361,6 +361,70 @@ def add_impact_link(
     return new_df
 
 
+def load_enriched_for_analysis(data_dir: Optional[Path] = None) -> pd.DataFrame:
+    """
+    Load enriched dataset for Task 3/4 analysis. Normalizes schema across
+    CSV/Excel and extended (value_numeric, record_id) vs simplified (value, year) formats.
+    Tries: processed/ethiopia_fi_enriched.csv, processed/ethiopia_fi_unified_data.xlsx,
+    then data/reference/task34_reference_data.csv.
+
+    Parameters:
+    -----------
+    data_dir : Path, optional
+        Base data directory. Default: parent of src/
+
+    Returns:
+    --------
+    pd.DataFrame with normalized columns: record_type, year, value, pillar, event_name,
+    event_type, source_event, target_observation, impact_direction, impact_magnitude, lag_months
+    """
+    if data_dir is None:
+        data_dir = Path(__file__).parent.parent / "data"
+    processed = data_dir / "processed"
+    reference = data_dir / "reference"
+
+    paths = [
+        processed / "ethiopia_fi_enriched.csv",
+        processed / "ethiopia_fi_enriched.xlsx",
+        processed / "ethiopia_fi_unified_data.xlsx",
+        reference / "task34_reference_data.csv",
+    ]
+    df = None
+    for p in paths:
+        if p.exists():
+            try:
+                if p.suffix == ".csv":
+                    df = pd.read_csv(p)
+                else:
+                    df = pd.read_excel(p)
+                logger.info(f"Loaded {len(df)} records from {p}")
+                break
+            except Exception as e:
+                logger.warning(f"Could not load {p}: {e}")
+                continue
+    if df is None or len(df) == 0:
+        raise FileNotFoundError(
+            f"No enriched data found. Run Task 1 first or ensure reference data exists. Checked: {paths}"
+        )
+
+    # Normalize schema
+    if "value_numeric" in df.columns and "value" not in df.columns:
+        df["value"] = df["value_numeric"]
+    if "fiscal_year" in df.columns and "year" not in df.columns:
+        df["year"] = df["fiscal_year"]
+    if "observation_date" in df.columns and "year" not in df.columns:
+        df["year"] = pd.to_datetime(df["observation_date"], errors="coerce").dt.year
+    if "record_id" not in df.columns:
+        df["record_id"] = df.index
+
+    # For impact_link: source_event and target_observation reference record_id or index
+    # parent_id: event is parent of impact_link; impact_link.source_event = event.record_id
+    if "parent_id" not in df.columns and "source_event" in df.columns:
+        df["parent_id"] = df["source_event"]  # alias for join to events
+
+    return df
+
+
 def save_enriched_data(df: pd.DataFrame, output_path: str) -> None:
     """
     Save enriched dataset to CSV

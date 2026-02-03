@@ -13,6 +13,8 @@ Analytical system designed to forecast Ethiopia's digital financial transformati
 - [Usage](#usage)
   - [Task 1: Data Exploration & Enrichment](#task-1-data-exploration--enrichment)
   - [Task 2: Exploratory Data Analysis](#task-2-exploratory-data-analysis)
+  - [Task 3: Event Impact Modeling](#task-3-event-impact-modeling)
+  - [Task 4: Forecasting Access & Usage](#task-4-forecasting-access--usage)
 - [Task 1: Detailed Documentation](#task-1-detailed-documentation)
   - [Description](#description)
   - [Implementation](#implementation)
@@ -25,6 +27,17 @@ Analytical system designed to forecast Ethiopia's digital financial transformati
   - [Files Created](#files-created-1)
   - [Execution Results](#execution-results-1)
   - [Key Insights](#key-insights-1)
+- [Task 3: Detailed Documentation](#task-3-detailed-documentation)
+  - [Description](#description-2)
+  - [Implementation](#implementation-2)
+  - [Files Created](#files-created-2)
+  - [Insights](#insights)
+- [Task 4: Detailed Documentation](#task-4-detailed-documentation)
+  - [Description](#description-3)
+  - [Implementation](#implementation-3)
+  - [Files Created](#files-created-3)
+  - [Forecast Results & Interpretation](#forecast-results--interpretation)
+- [Tools & Technologies](#tools--technologies)
 - [Data Sources](#data-sources)
 - [Methodology](#methodology)
 - [Contributing](#contributing)
@@ -47,7 +60,8 @@ EthioPulse-Forecaster/
 ├── .github/workflows/     # CI/CD workflows
 ├── data/
 │   ├── raw/               # Original datasets
-│   └── processed/        # Enriched and cleaned data
+│   ├── processed/         # Enriched and cleaned data
+│   └── reference/         # Reference data for Tasks 3 & 4
 ├── notebooks/            # Analysis notebooks
 ├── src/                  # Python modules
 ├── dashboard/            # Interactive dashboard
@@ -98,6 +112,20 @@ jupyter notebook notebooks/task1_data_exploration.ipynb
 ```bash
 # Run EDA analysis (ensure Task 1 has been completed first)
 jupyter notebook notebooks/task2_eda.ipynb
+```
+
+### Task 3: Event Impact Modeling
+
+```bash
+# Run event impact modeling (uses enriched data or reference dataset)
+jupyter notebook notebooks/task3_event_impact_modeling.ipynb
+```
+
+### Task 4: Forecasting Access & Usage
+
+```bash
+# Run forecasting (2025-2027 baseline, optimistic, pessimistic scenarios)
+jupyter notebook notebooks/task4_forecasting_access_usage.ipynb
 ```
 
 ### Dashboard
@@ -354,6 +382,83 @@ Growth slowdown: Z.ZZ percentage points
 - Policy implementation lag: interventions need time to show impact
 - Market dynamics: competition improves access but usage requires habit formation
 
+---
+
+## Task 3: Detailed Documentation
+
+### Description
+
+Task 3 quantifies how policy, market, and infrastructure events affect Ethiopia's financial inclusion indicators. It builds the event-indicator association framework required for event-augmented forecasting.
+
+### Implementation
+
+1. **Data Loading**: Load enriched data and impact_link records
+2. **Join Logic**: Join impact_link → events via source_event (parent_id)
+3. **Summary Table**: Event | Indicator | Direction | Magnitude | Lag
+4. **Association Matrix**: Rows=Events, Columns=Indicators (Access, Usage, MM accounts)
+5. **Functional Forms**: Immediate vs lagged effects, additive vs cumulative impacts
+6. **Validation**: Telebirr 2021–2024 historical validation
+
+### Files Created
+
+| File | Location | Description |
+|------|----------|-------------|
+| `task3_event_impact_modeling.ipynb` | `notebooks/` | Event impact modeling notebook |
+| `task3_impact_summary_table.csv` | `reports/` | Summary table output |
+| `task3_association_matrix.csv` | `reports/` | Association matrix output |
+| `task3_association_matrix_heatmap.png` | `reports/figures/` | Heatmap visualization |
+| `task3_event_impact_methodology.md` | `reports/` | Methodology documentation |
+
+### Insights
+
+- Policy events (NFIS, Interoperability) show 12–18 month lags
+- Telebirr has largest estimated impact on Access and Usage
+- Event magnitudes are expert-estimated; use ±30% for sensitivity
+
+---
+
+## Task 4: Detailed Documentation
+
+### Description
+
+Task 4 forecasts Ethiopia's Access (Account Ownership) and Usage (Digital Payments) for 2025–2027 using Global Findex definitions, with baseline, optimistic, and pessimistic scenarios.
+
+### Implementation
+
+1. **Target Definition**: Access = Account ownership (%), Usage = Digital payments (%) – Global Findex aligned
+2. **Methods**: Trend-only model, event-augmented model, scenario analysis
+3. **Scenarios**: Baseline, optimistic (+20% event impact), pessimistic (-20% event impact)
+4. **Uncertainty**: Confidence intervals via scenario ranges
+5. **Interpretation**: Key drivers, largest-impact events, structural constraints
+
+### Files Created
+
+| File | Location | Description |
+|------|----------|-------------|
+| `task4_forecasting_access_usage.ipynb` | `notebooks/` | Forecasting notebook |
+| `task4_forecast_table_2025_2027.csv` | `reports/` | Forecast table output |
+| `task4_forecast_scenarios.png` | `reports/figures/` | Scenario visualizations |
+| `task4_forecast_interpretation.md` | `reports/` | Policy-focused interpretation |
+
+### Forecast Results & Interpretation
+
+**2025–2027 Baseline (approximate):**
+- Access: 56% → 58% → 60%
+- Usage: 34% → 36% → 38%
+
+**Key Drivers:** M-Pesa (2023), Telebirr scale-up, interoperability  
+**Risks:** Usage activation gap, infrastructure saturation, macro/regulatory headwinds
+
+---
+
+## Tools & Technologies
+
+- **Python**: pandas, numpy, scipy, statsmodels, scikit-learn
+- **Visualization**: matplotlib, seaborn, plotly
+- **Time Series**: prophet, pmdarima
+- **Dashboard**: Dash, dash-bootstrap-components
+- **Data**: openpyxl (Excel), great-expectations (validation)
+
 ## Data Sources
 
 - **IMF Financial Access Survey (FAS)**
@@ -376,10 +481,20 @@ The system follows a rigorous analytical approach:
 
 This project follows strict Git/GitHub best practices:
 
-- All development on `task-12-dev` branch
+- **main** branch is protected
+- Tasks 3 & 4 development on `task-34-dev` branch
 - Merges to `main` via Pull Request only
 - Small, descriptive commits
 - Comprehensive documentation
+
+### Git Branching (Tasks 3 & 4)
+
+```bash
+git checkout -b task-34-dev   # Create branch
+# ... implement Task 3 and Task 4 ...
+git add . && git commit -m "feat: add event impact modeling and forecasting"
+# Open Pull Request to main
+```
 
 ## Contact
 
