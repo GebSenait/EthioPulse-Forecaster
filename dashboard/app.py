@@ -1,190 +1,381 @@
 """
-EthioPulse-Forecaster Dashboard
+EthioPulse-Forecaster — Interactive Dashboard (Task 5)
 
-Interactive dashboard for visualizing Ethiopia's financial inclusion trends and forecasts.
+Stakeholder-ready dashboard for Ethiopia's financial inclusion indicators,
+event impacts, and forecasts. Built with Streamlit for policy and investment decisions.
+
+Sections: Overview | Trends | Forecasts | Inclusion Projections
 """
 
-import dash
-from dash import dcc, html
-from dash.dependencies import Input, Output
-import pandas as pd
-import plotly.graph_objs as go
+import sys
 from pathlib import Path
 
-# Initialize Dash app
-app = dash.Dash(__name__)
-app.title = "EthioPulse-Forecaster Dashboard"
+# Ensure project root and dashboard dir are on path for imports
+_DASHBOARD_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _DASHBOARD_DIR.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+if str(_DASHBOARD_DIR) not in sys.path:
+    sys.path.insert(0, str(_DASHBOARD_DIR))
 
-# Define data paths
-DATA_DIR = Path(__file__).parent.parent / "data"
-PROCESSED_DATA_PATH = DATA_DIR / "processed" / "ethiopia_fi_enriched.csv"
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 
-# Load data
-try:
-    df = pd.read_csv(PROCESSED_DATA_PATH)
-    data_loaded = True
-except FileNotFoundError:
-    df = pd.DataFrame()
-    data_loaded = False
+from data_loader import (
+    load_reference_data,
+    load_observations,
+    load_events,
+    load_forecast_baseline,
+    load_forecast_scenarios,
+    get_events_with_impacts,
+)
 
-# App layout
-app.layout = html.Div([
-    html.Div([
-        html.H1("EthioPulse-Forecaster Dashboard", 
-                style={'textAlign': 'center', 'color': '#2E86AB', 'marginBottom': 30}),
-        html.P("Financial Inclusion Forecasting System for Ethiopia",
-               style={'textAlign': 'center', 'fontSize': 18, 'color': '#666'})
-    ]),
-    
-    html.Div([
-        dcc.Tabs(id="tabs", value='trends', children=[
-            dcc.Tab(label='Trends', value='trends'),
-            dcc.Tab(label='Events', value='events'),
-            dcc.Tab(label='Composition', value='composition'),
-        ]),
-        html.Div(id='tab-content')
-    ])
-])
+# Page config
+st.set_page_config(
+    page_title="EthioPulse-Forecaster | Financial Inclusion Dashboard",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
-@app.callback(Output('tab-content', 'children'),
-              Input('tabs', 'value'))
-def render_content(tab):
-    if not data_loaded:
-        return html.Div([
-            html.H3("Data Not Available"),
-            html.P("Please run Task 1 data enrichment pipeline first.")
-        ])
-    
-    if tab == 'trends':
-        return render_trends_tab()
-    elif tab == 'events':
-        return render_events_tab()
-    elif tab == 'composition':
-        return render_composition_tab()
-    else:
-        return html.Div("Select a tab")
-
-def render_trends_tab():
-    """Render trends visualization"""
-    access_obs = df[(df['record_type'] == 'observation') & (df['pillar'] == 'access')]
-    usage_obs = df[(df['record_type'] == 'observation') & (df['pillar'] == 'usage')]
-    
-    fig = go.Figure()
-    
-    if len(access_obs) > 0:
-        access_ts = access_obs.groupby('year')['value'].mean().sort_index()
-        fig.add_trace(go.Scatter(
-            x=access_ts.index,
-            y=access_ts.values,
-            mode='lines+markers',
-            name='Access (Account Ownership)',
-            line=dict(color='#2E86AB', width=3),
-            marker=dict(size=8)
-        ))
-    
-    if len(usage_obs) > 0:
-        usage_ts = usage_obs.groupby('year')['value'].mean().sort_index()
-        fig.add_trace(go.Scatter(
-            x=usage_ts.index,
-            y=usage_ts.values,
-            mode='lines+markers',
-            name='Usage (Digital Payments)',
-            line=dict(color='#A23B72', width=3),
-            marker=dict(size=8, symbol='square')
-        ))
-    
-    fig.update_layout(
-        title='Financial Inclusion Trends (2011-2024)',
-        xaxis_title='Year',
-        yaxis_title='Rate (%)',
-        hovermode='closest',
-        template='plotly_white',
-        height=500
-    )
-    
-    return html.Div([
-        dcc.Graph(figure=fig),
-        html.Div([
-            html.H4("Key Insights"),
-            html.Ul([
-                html.Li("Access (Account Ownership) shows steady growth"),
-                html.Li("Usage (Digital Payments) lags behind access"),
-                html.Li("Growth deceleration observed post-2021")
-            ])
-        ], style={'marginTop': 30, 'padding': 20, 'backgroundColor': '#f5f5f5'})
-    ])
-
-def render_events_tab():
-    """Render events visualization"""
-    events = df[df['record_type'] == 'event']
-    
-    if len(events) == 0:
-        return html.Div("No events data available")
-    
-    event_types = events['event_type'].value_counts()
-    
-    fig = go.Figure(data=[
-        go.Bar(
-            x=event_types.index,
-            y=event_types.values,
-            marker_color=['#2E86AB', '#A23B72', '#F18F01']
-        )
-    ])
-    
-    fig.update_layout(
-        title='Events by Type',
-        xaxis_title='Event Type',
-        yaxis_title='Count',
-        template='plotly_white',
-        height=400
-    )
-    
-    return html.Div([
-        dcc.Graph(figure=fig),
-        html.Div([
-            html.H4("Events Timeline"),
-            html.Table([
-                html.Thead([
-                    html.Tr([html.Th("Year"), html.Th("Event Name"), html.Th("Type")])
-                ]),
-                html.Tbody([
-                    html.Tr([
-                        html.Td(str(row['year'])),
-                        html.Td(row.get('event_name', 'N/A')),
-                        html.Td(row.get('event_type', 'N/A'))
-                    ]) for _, row in events.head(10).iterrows()
-                ])
-            ], style={'width': '100%', 'marginTop': 20})
-        ])
-    ])
-
-def render_composition_tab():
-    """Render dataset composition"""
-    composition_stats = {
-        'Total Records': len(df),
-        'Observations': len(df[df['record_type'] == 'observation']),
-        'Events': len(df[df['record_type'] == 'event']),
-        'Impact Links': len(df[df['record_type'] == 'impact_link'])
+# Custom CSS for stakeholder-ready UX
+st.markdown("""
+<style>
+    .metric-card {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2E86AB 100%);
+        color: white;
+        padding: 1rem 1.25rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
     }
-    
-    return html.Div([
-        html.H4("Dataset Composition"),
-        html.Div([
-            html.Div([
-                html.H3(str(count), style={'color': '#2E86AB', 'margin': 0}),
-                html.P(label, style={'margin': 0, 'fontSize': 14})
-            ], style={
-                'display': 'inline-block',
-                'margin': 20,
-                'padding': 20,
-                'backgroundColor': '#f5f5f5',
-                'borderRadius': 5,
-                'textAlign': 'center',
-                'minWidth': 150
-            })
-            for label, count in composition_stats.items()
-        ])
-    ])
+    .metric-card h3 { margin: 0; font-size: 1.75rem; }
+    .metric-card p { margin: 0.25rem 0 0 0; opacity: 0.9; font-size: 0.9rem; }
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
+    .stTabs [data-baseweb="tab"] { padding: 12px 20px; border-radius: 8px; }
+    div[data-testid="stExpander"] { border: 1px solid #2E86AB; border-radius: 8px; }
+</style>
+""", unsafe_allow_html=True)
 
-if __name__ == '__main__':
-    app.run_server(debug=True, port=8050)
+# Load data once
+@st.cache_data
+def load_all():
+    df = load_reference_data()
+    access_df, usage_df = load_observations(df)
+    events_df = load_events(df)
+    impact_summary = get_events_with_impacts(df)
+    forecast_baseline = load_forecast_baseline()
+    forecast_scenarios = load_forecast_scenarios()
+    return df, access_df, usage_df, events_df, impact_summary, forecast_baseline, forecast_scenarios
+
+df, access_df, usage_df, events_df, impact_summary, forecast_baseline, forecast_scenarios = load_all()
+data_loaded = not df.empty and (not access_df.empty or not usage_df.empty)
+
+# Sidebar
+st.sidebar.title("📊 EthioPulse-Forecaster")
+st.sidebar.markdown("**Ethiopia Financial Inclusion Analytics**")
+st.sidebar.markdown("---")
+st.sidebar.caption("Selam Analytics · NBE & Development Finance Consortium")
+if not data_loaded:
+    st.sidebar.warning("Reference data not found. Using demo/empty views.")
+
+# Navigation
+page = st.sidebar.radio(
+    "Navigate",
+    ["Overview", "Trends", "Forecasts", "Inclusion Projections"],
+    index=0,
+)
+
+# ---------- OVERVIEW PAGE ----------
+if page == "Overview":
+    st.title("Overview — Key Metrics")
+    st.markdown("Current values, trends, and the **Usage-to-Access Ratio** (digital activation indicator).")
+
+    if data_loaded:
+        # Latest values
+        access_latest = access_df["value"].iloc[-1] if not access_df.empty else None
+        usage_latest = usage_df["value"].iloc[-1] if not usage_df.empty else None
+        year_latest = int(access_df["year"].iloc[-1]) if not access_df.empty else (int(usage_df["year"].iloc[-1]) if not usage_df.empty else None)
+
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Account ownership (Access) %", f"{access_latest:.1f}" if access_latest is not None else "—", f"Latest: {year_latest}")
+        with col2:
+            st.metric("Digital payments (Usage) %", f"{usage_latest:.1f}" if usage_latest is not None else "—", f"Latest: {year_latest}")
+        with col3:
+            # P2P/ATM Crossover Ratio = Usage/Access (digital activation ratio)
+            if access_latest and access_latest > 0 and usage_latest is not None:
+                ratio = usage_latest / access_latest
+                st.metric("Usage-to-Access Ratio", f"{ratio:.2f}", "Digital activation (higher = more usage per account)")
+            else:
+                st.metric("Usage-to-Access Ratio", "—", "Digital activation")
+        with col4:
+            if access_latest and usage_latest is not None and access_latest > 0:
+                gap = access_latest - usage_latest
+                st.metric("Access–Usage gap (pp)", f"{gap:.1f}", "Lower is better")
+
+        # Growth rate highlights
+        st.subheader("Growth rate highlights")
+        if len(access_df) >= 2 and len(usage_df) >= 2:
+            access_growth = (access_df["value"].iloc[-1] - access_df["value"].iloc[0]) / max(access_df["value"].iloc[0], 1e-6) * 100
+            usage_growth = (usage_df["value"].iloc[-1] - usage_df["value"].iloc[0]) / max(usage_df["value"].iloc[0], 1e-6) * 100
+            c1, c2 = st.columns(2)
+            with c1:
+                st.info(f"**Access** (full period): {access_growth:.1f}% growth")
+            with c2:
+                st.info(f"**Usage** (full period): {usage_growth:.1f}% growth")
+
+        # Usage-to-Access ratio over time (indicator)
+        st.subheader("Usage-to-Access Ratio over time")
+        if not access_df.empty and not usage_df.empty:
+            merge_df = access_df.rename(columns={"value": "access"}).merge(
+                usage_df.rename(columns={"value": "usage"}),
+                on="year",
+                how="outer"
+            ).sort_values("year")
+            merge_df["ratio"] = merge_df["usage"] / merge_df["access"].replace(0, 1e-6)
+            fig_ratio = go.Figure()
+            fig_ratio.add_trace(go.Scatter(
+                x=merge_df["year"], y=merge_df["ratio"],
+                mode="lines+markers", name="Usage / Access",
+                line=dict(color="#2E86AB", width=2), marker=dict(size=10)
+            ))
+            fig_ratio.add_hline(y=1.0, line_dash="dash", line_color="gray", annotation_text="Ratio = 1")
+            fig_ratio.update_layout(
+                title="Digital Activation Ratio (Usage ÷ Access)",
+                xaxis_title="Year",
+                yaxis_title="Ratio",
+                template="plotly_white",
+                height=400,
+            )
+            st.plotly_chart(fig_ratio, use_container_width=True)
+            st.caption("When the ratio approaches 1, digital payment usage is catching up to account ownership.")
+
+        # Event-impact summary (which events most affected indicators)
+        if not impact_summary.empty:
+            st.subheader("Events with measured impact on indicators")
+            impact_agg = impact_summary.groupby("event_name").agg(
+                magnitude=("magnitude", "sum"),
+                indicators=("indicator", lambda x: ", ".join(sorted(set(x)))),
+            ).reset_index()
+            impact_agg = impact_agg.sort_values("magnitude", ascending=True)
+            fig_impact = px.bar(
+                impact_agg,
+                x="magnitude",
+                y="event_name",
+                orientation="h",
+                title="Cumulative impact magnitude by event (Task 3 impact links)",
+                labels={"magnitude": "Impact magnitude", "event_name": "Event"},
+            )
+            fig_impact.update_layout(template="plotly_white", height=max(300, len(impact_agg) * 35))
+            st.plotly_chart(fig_impact, use_container_width=True)
+    else:
+        st.info("Run Task 1 (or use reference data) to populate Overview metrics.")
+
+# ---------- TRENDS PAGE ----------
+elif page == "Trends":
+    st.title("Trends — Time series & channel comparison")
+    st.markdown("Explore historical **Access** (account ownership) and **Usage** (digital payments) with date range and channel comparison.")
+
+    if data_loaded:
+        combined = pd.concat([access_df, usage_df], ignore_index=True)
+        if combined.empty:
+            st.warning("No observation data available.")
+        else:
+            y_min = int(combined["year"].min())
+            y_max = int(combined["year"].max())
+            y_range = st.slider("Select year range", min_value=y_min, max_value=y_max, value=(y_min, y_max))
+            filtered = combined[(combined["year"] >= y_range[0]) & (combined["year"] <= y_range[1])]
+
+            fig_trend = px.line(
+                filtered,
+                x="year",
+                y="value",
+                color="pillar",
+                markers=True,
+                title="Access vs Usage over time",
+                labels={"value": "Rate (%)", "year": "Year", "pillar": "Indicator"},
+            )
+            fig_trend.update_layout(
+                template="plotly_white",
+                height=500,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            )
+            fig_trend.for_each_trace(lambda t: t.update(line=dict(width=3)))
+            st.plotly_chart(fig_trend, use_container_width=True)
+
+            # Channel comparison: bar by year
+            st.subheader("Channel comparison by year")
+            pivot = filtered.pivot_table(index="year", columns="pillar", values="value").reset_index()
+            if not pivot.empty:
+                fig_bar = go.Figure()
+                for col in pivot.columns:
+                    if col == "year":
+                        continue
+                    fig_bar.add_trace(go.Bar(name=col, x=pivot["year"], y=pivot[col]))
+                fig_bar.update_layout(barmode="group", title="Access vs Usage by year", template="plotly_white", height=400)
+                st.plotly_chart(fig_bar, use_container_width=True)
+
+            # Events overlay
+            if not events_df.empty:
+                st.subheader("Events timeline")
+                events_filtered = events_df[(events_df["year"] >= y_range[0]) & (events_df["year"] <= y_range[1])]
+                st.dataframe(events_filtered, use_container_width=True, hide_index=True)
+    else:
+        st.info("Load reference data to view trends.")
+
+# ---------- FORECASTS PAGE ----------
+elif page == "Forecasts":
+    st.title("Forecasts — 2025–2027")
+    st.markdown("Forecast visualizations with confidence intervals and **scenario selection** (baseline / event-augmented / optimistic / pessimistic).")
+
+    if not forecast_baseline.empty or not forecast_scenarios.empty:
+        model_option = st.selectbox(
+            "Model / scenario view",
+            ["Baseline with confidence intervals", "Scenario comparison (baseline / optimistic / pessimistic)"],
+            index=0,
+        )
+
+        if model_option == "Baseline with confidence intervals" and not forecast_baseline.empty:
+            fig_fc = go.Figure()
+            for ind in forecast_baseline["Indicator"].unique():
+                sub = forecast_baseline[forecast_baseline["Indicator"] == ind]
+                fig_fc.add_trace(go.Scatter(
+                    x=sub["Year"], y=sub["Baseline"],
+                    mode="lines+markers", name=f"{ind} (baseline)",
+                    line=dict(width=3),
+                ))
+                fig_fc.add_trace(go.Scatter(
+                    x=sub["Year"], y=sub["High_CI"],
+                    mode="lines", name=f"{ind} (upper CI)",
+                    line=dict(width=1, dash="dash"),
+                ))
+                fig_fc.add_trace(go.Scatter(
+                    x=sub["Year"], y=sub["Low_CI"],
+                    mode="lines", name=f"{ind} (lower CI)",
+                    line=dict(width=1, dash="dash"),
+                ))
+            fig_fc.update_layout(
+                title="Forecast 2025–2027 (Baseline & confidence intervals)",
+                xaxis_title="Year",
+                yaxis_title="Rate (%)",
+                template="plotly_white",
+                height=500,
+            )
+            st.plotly_chart(fig_fc, use_container_width=True)
+
+            st.subheader("Key projected milestones (baseline)")
+            st.dataframe(forecast_baseline, use_container_width=True, hide_index=True)
+
+        elif model_option == "Scenario comparison (baseline / optimistic / pessimistic)" and not forecast_scenarios.empty:
+            scenario_sel = st.multiselect(
+                "Scenarios to display",
+                ["baseline", "optimistic", "pessimistic"],
+                default=["baseline", "optimistic", "pessimistic"],
+            )
+            if scenario_sel:
+                sub = forecast_scenarios[forecast_scenarios["Scenario"].isin(scenario_sel)]
+                fig_sc = px.line(
+                    sub,
+                    x="Year",
+                    y="Value",
+                    color="Scenario",
+                    facet_row="Indicator",
+                    markers=True,
+                    title="Forecast by scenario",
+                    labels={"Value": "Rate (%)"},
+                )
+                fig_sc.update_layout(template="plotly_white", height=500)
+                st.plotly_chart(fig_sc, use_container_width=True)
+            st.subheader("Scenario table")
+            st.dataframe(forecast_scenarios, use_container_width=True, hide_index=True)
+    else:
+        st.warning("No forecast data found. Run Task 4 and ensure `task4_forecast_table_2025_2027.csv` and `task4_forecast_scenarios.csv` exist in `reports/`.")
+
+# ---------- INCLUSION PROJECTIONS PAGE ----------
+elif page == "Inclusion Projections":
+    st.title("Inclusion Projections — Progress toward 60% target")
+    st.markdown("Financial inclusion rate projections and progress toward the **60% account ownership target** with scenario selector.")
+
+    TARGET_PCT = 60.0
+    st.subheader(f"Target: {TARGET_PCT}% account ownership (Access)")
+
+    if not forecast_scenarios.empty:
+        scenario_choice = st.radio("Scenario", ["optimistic", "baseline", "pessimistic"], index=1, horizontal=True)
+        access_sc = forecast_scenarios[(forecast_scenarios["Indicator"] == "Access") & (forecast_scenarios["Scenario"] == scenario_choice)]
+        if not access_sc.empty:
+            fig_target = go.Figure()
+            fig_target.add_trace(go.Scatter(
+                x=access_sc["Year"], y=access_sc["Value"],
+                mode="lines+markers", name=f"Access ({scenario_choice})",
+                line=dict(width=3),
+            ))
+            fig_target.add_hline(y=TARGET_PCT, line_dash="dash", line_color="green", annotation_text=f"Target {TARGET_PCT}%")
+            # Add historical if available
+            if data_loaded and not access_df.empty:
+                fig_target.add_trace(go.Scatter(
+                    x=access_df["year"], y=access_df["value"],
+                    mode="lines+markers", name="Historical Access",
+                    line=dict(color="gray", width=2, dash="dot"),
+                ))
+            fig_target.update_layout(
+                title="Access (Account Ownership) — Progress toward 60% target",
+                xaxis_title="Year",
+                yaxis_title="Rate (%)",
+                template="plotly_white",
+                height=450,
+            )
+            st.plotly_chart(fig_target, use_container_width=True)
+
+            latest_proj = access_sc["Value"].iloc[-1]
+            st.metric("Projected Access (2027)", f"{latest_proj:.1f}%", f"Target: {TARGET_PCT}% — {'On track' if latest_proj >= TARGET_PCT else 'Gap: ' + str(round(TARGET_PCT - latest_proj, 1)) + ' pp'}")
+
+        st.subheader("Answers to consortium questions")
+        with st.expander("Which events most affected financial inclusion indicators?"):
+            if not impact_summary.empty:
+                st.dataframe(impact_summary, use_container_width=True, hide_index=True)
+            else:
+                st.write("Event-impact links are derived from Task 3. Run Task 3 and ensure reference data includes impact_link records.")
+        with st.expander("How did account ownership and digital payment usage evolve over time?"):
+            st.write("See the **Trends** page for time series. Access grew from ~14% (2011) to ~54% (2024); Usage from ~2% to ~33%, with a persistent access–usage gap.")
+        with st.expander("What is the forecast for Access and Usage through 2027?"):
+            st.write("See the **Forecasts** page. Baseline 2027: Access ~82%, Usage ~52%. Optimistic and pessimistic scenarios bracket policy and market uncertainty.")
+        with st.expander("What progress has Ethiopia made toward financial inclusion targets?"):
+            st.write("Access is projected to exceed the 60% target under baseline and optimistic scenarios by 2027. Usage continues to lag; activation and interoperability remain levers.")
+    else:
+        st.info("Load scenario forecast data (Task 4) to view inclusion projections.")
+
+# ---------- DATA DOWNLOAD (sidebar) ----------
+st.sidebar.markdown("---")
+st.sidebar.subheader("Data download")
+if data_loaded:
+    combined_obs = pd.concat([access_df, usage_df], ignore_index=True) if not access_df.empty or not usage_df.empty else pd.DataFrame()
+    if not combined_obs.empty:
+        st.sidebar.download_button(
+            "Download observations (CSV)",
+            combined_obs.to_csv(index=False).encode("utf-8"),
+            file_name="ethiopia_fi_observations.csv",
+            mime="text/csv",
+        )
+if not forecast_baseline.empty:
+    st.sidebar.download_button(
+        "Download baseline forecast (CSV)",
+        forecast_baseline.to_csv(index=False).encode("utf-8"),
+        file_name="task4_forecast_baseline.csv",
+        mime="text/csv",
+        key="dl_baseline",
+    )
+if not forecast_scenarios.empty:
+    st.sidebar.download_button(
+        "Download scenario forecast (CSV)",
+        forecast_scenarios.to_csv(index=False).encode("utf-8"),
+        file_name="task4_forecast_scenarios.csv",
+        mime="text/csv",
+        key="dl_scenarios",
+    )
+
+# Footer
+st.sidebar.markdown("---")
+st.sidebar.caption("Task 5 · EthioPulse-Forecaster · Reproducible & policy-ready")

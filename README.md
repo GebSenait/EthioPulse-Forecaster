@@ -15,6 +15,7 @@ Analytical system designed to forecast Ethiopia's digital financial transformati
   - [Task 2: Exploratory Data Analysis](#task-2-exploratory-data-analysis)
   - [Task 3: Event Impact Modeling](#task-3-event-impact-modeling)
   - [Task 4: Forecasting Access & Usage](#task-4-forecasting-access--usage)
+- [Task 5: Interactive Dashboard](#task-5-interactive-dashboard)
 - [Task 1: Detailed Documentation](#task-1-detailed-documentation)
   - [Description](#description)
   - [Implementation](#implementation)
@@ -37,6 +38,12 @@ Analytical system designed to forecast Ethiopia's digital financial transformati
   - [Implementation](#implementation-3)
   - [Files Created](#files-created-3)
   - [Forecast Results & Interpretation](#forecast-results--interpretation)
+- [Task 5: Detailed Documentation](#task-5-detailed-documentation)
+  - [Description](#description-4)
+  - [Implementation](#implementation-4)
+  - [Execution](#execution)
+  - [Files Created](#files-created-4)
+  - [Dashboard Visualizations & Insights](#dashboard-visualizations--insights)
 - [Tools & Technologies](#tools--technologies)
 - [Data Sources](#data-sources)
 - [Methodology](#methodology)
@@ -128,12 +135,12 @@ jupyter notebook notebooks/task3_event_impact_modeling.ipynb
 jupyter notebook notebooks/task4_forecasting_access_usage.ipynb
 ```
 
-### Dashboard
+### Task 5: Interactive Dashboard
 
 ```bash
-# Launch interactive dashboard
-python dashboard/app.py
-# Access at: http://localhost:8050
+# From project root (EthioPulse-Forecaster/)
+streamlit run dashboard/app.py
+# Opens in browser at http://localhost:8501
 ```
 
 ---
@@ -451,12 +458,91 @@ Task 4 forecasts Ethiopia's Access (Account Ownership) and Usage (Digital Paymen
 
 ---
 
+## Task 5: Detailed Documentation
+
+### Description
+
+Task 5 delivers a **stakeholder-ready, interactive dashboard** that visualizes Ethiopia's financial inclusion indicators, event impacts, and forecasts. It enables the consortium (development finance institutions, mobile money operators, National Bank of Ethiopia) to answer:
+
+- Which events most affected financial inclusion indicators?
+- How did account ownership and digital payment usage evolve over time?
+- What is the forecast for Access and Usage through 2027?
+- What progress has Ethiopia made toward financial inclusion targets (e.g. 60% account ownership)?
+
+The dashboard is built with **Streamlit** for clarity, interactivity, and reproducibility.
+
+### Implementation
+
+1. **Dashboard setup**: Streamlit app in `dashboard/app.py` with modular data loading in `dashboard/data_loader.py`.
+2. **Overview page**: Key metrics (current Access/Usage), **Usage-to-Access Ratio** (digital activation), growth highlights, and event-impact magnitude chart.
+3. **Trends page**: Interactive time series with date range selector and channel (Access vs Usage) comparison; events timeline.
+4. **Forecasts page**: Forecasts with confidence intervals; model/scenario selection (baseline with CI, or baseline/optimistic/pessimistic comparison); key projected milestones.
+5. **Inclusion Projections page**: Financial inclusion rate projections, **progress toward 60% target**, scenario selector (optimistic/base/pessimistic), and expandable answers to the four consortium questions.
+6. **Technical**: At least four interactive Plotly charts; clear labels and explanations; **data download** (observations, baseline forecast, scenario forecast) in the sidebar; scenario selection throughout.
+
+### Execution
+
+From the project root:
+
+```bash
+# Activate environment
+.\venv\Scripts\Activate.ps1   # Windows
+# source venv/bin/activate    # Linux/Mac
+
+# Run dashboard
+streamlit run dashboard/app.py
+```
+
+The app opens in the default browser at **http://localhost:8501**. No separate server port configuration is required.
+
+### Files Created
+
+| File | Location | Description |
+|------|----------|-------------|
+| `dashboard/app.py` | `dashboard/` | Main Streamlit app (Overview, Trends, Forecasts, Inclusion Projections) |
+| `dashboard/data_loader.py` | `dashboard/` | Data loading for reference data, observations, events, impact links, forecasts |
+| `reports/task4_forecast_scenarios.csv` | `reports/` | Scenario forecasts (baseline, optimistic, pessimistic) for 2025–2027 |
+
+**Data dependencies:** `data/reference/task34_reference_data.csv`, `reports/task4_forecast_table_2025_2027.csv`, `reports/task4_forecast_scenarios.csv`.
+
+### Dashboard Visualizations & Insights
+
+| Section | Visualizations | Insights |
+|--------|----------------|----------|
+| **Overview** | Metric cards (Access %, Usage %, Usage-to-Access Ratio, Access–Usage gap); ratio over time; event-impact magnitude bar chart | Current levels and digital activation trend; which events have largest measured impact on indicators |
+| **Trends** | Interactive Access vs Usage time series; year range slider; channel comparison bar chart; events table | Evolution of account ownership and digital payments; channel comparison by year; event timeline |
+| **Forecasts** | Baseline + confidence intervals; scenario comparison (baseline/optimistic/pessimistic); milestone table | 2025–2027 trajectories; uncertainty and scenario range; key projected values |
+| **Inclusion Projections** | Access projection vs 60% target line; scenario selector; expandable Q&A | Progress toward target; scenario-based outlook; direct answers to consortium questions |
+
+**Validation:** Dashboard uses the same reference and report outputs as Tasks 1–4; metrics and forecasts are traceable to notebooks and CSVs.  
+**Limitations:** Dashboard assumes reference and forecast files exist; event names depend on `task34_reference_data.csv` schema.  
+**Recommendations:** Re-run Task 4 after model changes to refresh `task4_forecast_scenarios.csv`; use data download for external reporting.  
+**Next steps:** Optional: deploy to a shared URL; add filters (e.g. by region if data becomes available); link to methodology docs from the app.
+
+#### Task 5 — Mandatory response structure
+
+1. **Context recap**: Consortium (NBE, mobile money operators, development finance institutions) needs a single place to explore FI indicators, event impacts, and forecasts from Tasks 1–4.
+2. **Objective**: Build a stakeholder-ready, interactive dashboard answering which events affected FI, how Access/Usage evolved, what the 2025–2027 forecast is, and progress toward the 60% target.
+3. **Data used**: `data/reference/task34_reference_data.csv` (observations, events, impact_links), `reports/task4_forecast_table_2025_2027.csv`, `reports/task4_forecast_scenarios.csv`.
+4. **Methodology**: Streamlit for UI; Plotly for interactive charts; cached data load from reference and reports; scenario selection for policy-relevant ranges.
+5. **Dashboard design**: Four pages (Overview, Trends, Forecasts, Inclusion Projections); sidebar for navigation and data download; metric cards and time series with clear labels.
+6. **Implementation**: `dashboard/app.py` (Streamlit), `dashboard/data_loader.py` (load and reshape); scenario CSV generated for baseline/optimistic/pessimistic.
+7. **Execution steps**: From project root, `streamlit run dashboard/app.py`; browser opens at http://localhost:8501.
+8. **Interactive visualizations**: Overview (metrics, Usage-to-Access ratio, event-impact bar); Trends (time series + date range, channel comparison); Forecasts (baseline + CI, scenario comparison); Inclusion Projections (60% target line, scenario selector, Q&A expanders).
+9. **Insights & interpretation**: Access leads Usage; ratio shows activation gap; event-impact magnitudes identify Telebirr, NFIS, M-Pesa; baseline 2027 Access ~82%, above 60% target.
+10. **Validation**: Same inputs as Tasks 1–4; numbers traceable to notebooks and CSVs; download allows external audit.
+11. **Limitations**: Depends on reference and forecast files; event names from schema; no geographic or demographic breakdown in current data.
+12. **Recommendations**: Re-run Task 4 when models change; use downloads for reporting; document assumptions in expanders.
+13. **Next steps**: Deploy to shared URL; add region/segment filters if data available; link methodology docs from app.
+
+---
+
 ## Tools & Technologies
 
 - **Python**: pandas, numpy, scipy, statsmodels, scikit-learn
 - **Visualization**: matplotlib, seaborn, plotly
 - **Time Series**: prophet, pmdarima
-- **Dashboard**: Dash, dash-bootstrap-components
+- **Dashboard**: Streamlit (Task 5), Dash, dash-bootstrap-components
 - **Data**: openpyxl (Excel), great-expectations (validation)
 
 ## Data Sources
@@ -482,12 +568,22 @@ The system follows a rigorous analytical approach:
 This project follows strict Git/GitHub best practices:
 
 - **main** branch is protected
-- Tasks 3 & 4 development on `task-34-dev` branch
+- Task 5 development on `task-5-dev` branch; Tasks 3 & 4 on `task-34-dev`
 - Merges to `main` via Pull Request only
 - Small, descriptive commits
 - Comprehensive documentation
 
-### Git Branching (Tasks 3 & 4)
+### Git Branching
+
+```bash
+git checkout -b task-5-dev    # Create branch
+# ... implement Task 5 dashboard ...
+git add .
+git commit -m "feat(task5): add Streamlit dashboard (Overview, Trends, Forecasts, Inclusion Projections)"
+# Open Pull Request to main
+```
+
+### Git Branching
 
 ```bash
 git checkout -b task-34-dev   # Create branch
